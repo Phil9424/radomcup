@@ -4,26 +4,16 @@ import { Badge } from "@/components/ui/badge";
 import { Trophy, Calendar } from 'lucide-react';
 import Link from "next/link";
 
-export const dynamic = 'force-dynamic';
-
 export default async function TournamentsPage() {
-  let tournaments: any[] = [];
+  const supabase = await createClient();
 
-  try {
-    const supabase = await createClient();
-
-    const { data } = await supabase
-      .from("tournaments")
-      .select(`
-        *,
-        game_days (id)
-      `)
-      .order("created_at", { ascending: false });
-    
-    tournaments = data || [];
-  } catch (error) {
-    console.error("Ошибка при загрузке турниров:", error);
-  }
+  const { data: tournaments } = await supabase
+    .from("tournaments")
+    .select(`
+      *,
+      game_days (id)
+    `)
+    .order("created_at", { ascending: false });
 
   return (
     <div className="min-h-screen bg-background">

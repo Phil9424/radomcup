@@ -3,43 +3,35 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Users } from 'lucide-react';
 import { PlayersTable } from "./players-table";
 
-export const dynamic = 'force-dynamic';
-
 export default async function PlayersPage() {
-  let playersWithWins: any[] = [];
+  const supabase = await createClient();
 
-  try {
-    const supabase = await createClient();
+  // Fetch all players with their stats
+  const { data: players } = await supabase
+    .from("players")
+    .select("*");
 
-    // Fetch all players with their stats
-    const { data: players } = await supabase
-      .from("players")
-      .select("*");
+  // Calculate tournament wins by counting victory = true records per player
+  const { data: victoryStats } = await supabase
+    .from("player_match_stats")
+    .select("player_id, victory");
 
-    // Calculate tournament wins by counting victory = true records per player
-    const { data: victoryStats } = await supabase
-      .from("player_match_stats")
-      .select("player_id, victory");
+  // Count victories per player
+  const tournamentWinsMap = new Map<string, number>();
 
-    // Count victories per player
-    const tournamentWinsMap = new Map<string, number>();
+  victoryStats?.forEach((stat: any) => {
+    if (stat.victory) {
+      const playerId = stat.player_id;
+      const currentWins = tournamentWinsMap.get(playerId) || 0;
+      tournamentWinsMap.set(playerId, currentWins + 1);
+    }
+  });
 
-    victoryStats?.forEach((stat: any) => {
-      if (stat.victory) {
-        const playerId = stat.player_id;
-        const currentWins = tournamentWinsMap.get(playerId) || 0;
-        tournamentWinsMap.set(playerId, currentWins + 1);
-      }
-    });
-
-    // Prepare players data with wins
-    playersWithWins = players?.map(player => ({
-      ...player,
-      wins: tournamentWinsMap.get(player.id) || 0
-    })) || [];
-  } catch (error) {
-    console.error("Ошибка при загрузке данных игроков:", error);
-  }
+  // Prepare players data with wins
+  const playersWithWins = players?.map(player => ({
+    ...player,
+    wins: tournamentWinsMap.get(player.id) || 0
+  })) || [];
 
   return (
     <div className="min-h-screen bg-background">

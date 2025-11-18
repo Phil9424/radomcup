@@ -4,51 +4,42 @@ import { Badge } from "@/components/ui/badge";
 import { Award, Trophy, Star, Zap, Target, TrendingUp } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export const dynamic = 'force-dynamic';
-
 export default async function AchievementsPage() {
-  let achievements: any[] = [];
+  const supabase = await createClient();
+
+  // Fetch all achievements with unlock count
+  const { data: achievements } = await supabase
+    .from("achievements")
+    .select("*")
+    .order("category", { ascending: true });
+
+  // Fetch player achievements to count unlocks
+  const { data: playerAchievements } = await supabase
+    .from("player_achievements")
+    .select("achievement_id, player_id, players(name)");
+
+  // Count unlocks per achievement
   const unlockCountMap = new Map<string, number>();
   const recentUnlocksMap = new Map<string, Array<{ playerName: string }>>();
-  const categories = new Map<string, any[]>();
 
-  try {
-    const supabase = await createClient();
+  playerAchievements?.forEach((pa: any) => {
+    const count = unlockCountMap.get(pa.achievement_id) || 0;
+    unlockCountMap.set(pa.achievement_id, count + 1);
 
-    // Fetch all achievements with unlock count
-    const { data } = await supabase
-      .from("achievements")
-      .select("*")
-      .order("category", { ascending: true });
-    
-    achievements = data || [];
+    const unlocks = recentUnlocksMap.get(pa.achievement_id) || [];
+    unlocks.push({ playerName: pa.players.name });
+    recentUnlocksMap.set(pa.achievement_id, unlocks);
+  });
 
-    // Fetch player achievements to count unlocks
-    const { data: playerAchievements } = await supabase
-      .from("player_achievements")
-      .select("achievement_id, player_id, players(name)");
-
-    // Count unlocks per achievement
-    playerAchievements?.forEach((pa: any) => {
-      const count = unlockCountMap.get(pa.achievement_id) || 0;
-      unlockCountMap.set(pa.achievement_id, count + 1);
-
-      const unlocks = recentUnlocksMap.get(pa.achievement_id) || [];
-      unlocks.push({ playerName: pa.players.name });
-      recentUnlocksMap.set(pa.achievement_id, unlocks);
-    });
-
-    // Group achievements by category
-    achievements.forEach((achievement) => {
-      const category = achievement.category || 'general';
-      if (!categories.has(category)) {
-        categories.set(category, []);
-      }
-      categories.get(category)!.push(achievement);
-    });
-  } catch (error) {
-    console.error("Ошибка при загрузке достижений:", error);
-  }
+  // Group achievements by category
+  const categories = new Map<string, typeof achievements>();
+  achievements?.forEach((achievement) => {
+    const category = achievement.category || 'general';
+    if (!categories.has(category)) {
+      categories.set(category, []);
+    }
+    categories.get(category)!.push(achievement);
+  });
 
   function getCategoryIcon(category: string) {
     switch (category) {
@@ -138,7 +129,7 @@ export default async function AchievementsPage() {
                         <div className="flex items-start justify-between mb-2">
                           <div className="text-4xl">{achievement.icon}</div>
                           <Badge variant="secondary">
-                            {unlockCount} {unlockCount === 1 ? 'разблокировано' : 'разблокировано'}
+                            {разблокированоCount} {разблокированоCount === 1 ? 'разблокировано' : 'разблокировано'}
                           </Badge>
                         </div>
                         <CardTitle className="text-xl">{achievement.name}</CardTitle>
