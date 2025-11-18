@@ -9,74 +9,78 @@ import { Button } from "@/components/ui/button";
 import { GameDayStandings } from "@/components/tournaments/game-day-standings";
 import { TournamentFinalStandings } from "@/components/tournaments/tournament-final-standings";
 
+export const dynamic = 'force-dynamic';
+
 export default async function TournamentDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createClient();
-
-  // Fetch tournament with game days
-  const { data: tournament, error } = await supabase
-    .from("tournaments")
-    .select(`
-      *,
-      game_days (
-        id,
-        day_number,
-        created_at,
-        matches (
-          id,
-          match_id,
-          match_data
-        )
-      )
-    `)
-    .eq("id", id)
-    .single();
-
-  if (error || !tournament) {
-    notFound();
-  }
-
-  // Sort game days by day number
-  const sortedGameDays = tournament.game_days?.sort(
-    (a, b) => a.day_number - b.day_number
-  ) || [];
-
-  // Fetch tournament standings - get all players who participated in this tournament
-  const { data: standings } = await supabase
-    .from("player_match_stats")
-    .select(`
-      player_id,
-      points,
-      players!inner (name)
-    `)
-    .eq("tournament_id", id);
-
-  // Aggregate points by player
-  const playerPoints = new Map<string, { name: string; points: number; matches: number }>();
   
-  standings?.forEach((stat: any) => {
-    const playerId = stat.player_id;
-    const playerName = stat.players.name;
-    const points = stat.points;
-    
-    if (playerPoints.has(playerId)) {
-      const player = playerPoints.get(playerId)!;
-      player.points += points;
-      player.matches += 1;
-    } else {
-      playerPoints.set(playerId, { name: playerName, points, matches: 1 });
+  try {
+    const supabase = await createClient();
+
+    // Fetch tournament with game days
+    const { data: tournament, error } = await supabase
+      .from("tournaments")
+      .select(`
+        *,
+        game_days (
+          id,
+          day_number,
+          created_at,
+          matches (
+            id,
+            match_id,
+            match_data
+          )
+        )
+      `)
+      .eq("id", id)
+      .single();
+
+    if (error || !tournament) {
+      notFound();
     }
-  });
 
-  const finalStandings = Array.from(playerPoints.values())
-    .sort((a, b) => b.points - a.points)
-    .map((player, index) => ({ ...player, position: index + 1 }));
+    // Sort game days by day number
+    const sortedGameDays = tournament.game_days?.sort(
+      (a, b) => a.day_number - b.day_number
+    ) || [];
 
-  return (
+    // Fetch tournament standings - get all players who participated in this tournament
+    const { data: standings } = await supabase
+      .from("player_match_stats")
+      .select(`
+        player_id,
+        points,
+        players!inner (name)
+      `)
+      .eq("tournament_id", id);
+
+    // Aggregate points by player
+    const playerPoints = new Map<string, { name: string; points: number; matches: number }>();
+    
+    standings?.forEach((stat: any) => {
+      const playerId = stat.player_id;
+      const playerName = stat.players.name;
+      const points = stat.points;
+      
+      if (playerPoints.has(playerId)) {
+        const player = playerPoints.get(playerId)!;
+        player.points += points;
+        player.matches += 1;
+      } else {
+        playerPoints.set(playerId, { name: playerName, points, matches: 1 });
+      }
+    });
+
+    const finalStandings = Array.from(playerPoints.values())
+      .sort((a, b) => b.points - a.points)
+      .map((player, index) => ({ ...player, position: index + 1 }));
+
+    return (
     <div className="min-h-screen bg-background">
       <div className="bg-gradient-to-b from-primary/10 to-background py-12 px-4">
         <div className="container mx-auto">
@@ -159,5 +163,9 @@ export default async function TournamentDetailPage({
         )}
       </div>
     </div>
-  );
+    );
+  } catch (error) {
+    console.error("Ошибка при загрузке турнира:", error);
+    notFound();
+  }
 }

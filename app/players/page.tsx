@@ -3,35 +3,43 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Users } from 'lucide-react';
 import { PlayersTable } from "./players-table";
 
+export const dynamic = 'force-dynamic';
+
 export default async function PlayersPage() {
-  const supabase = await createClient();
+  let playersWithWins: any[] = [];
 
-  // Fetch all players with their stats
-  const { data: players } = await supabase
-    .from("players")
-    .select("*");
+  try {
+    const supabase = await createClient();
 
-  // Calculate tournament wins by counting victory = true records per player
-  const { data: victoryStats } = await supabase
-    .from("player_match_stats")
-    .select("player_id, victory");
+    // Fetch all players with their stats
+    const { data: players } = await supabase
+      .from("players")
+      .select("*");
 
-  // Count victories per player
-  const tournamentWinsMap = new Map<string, number>();
+    // Calculate tournament wins by counting victory = true records per player
+    const { data: victoryStats } = await supabase
+      .from("player_match_stats")
+      .select("player_id, victory");
 
-  victoryStats?.forEach((stat: any) => {
-    if (stat.victory) {
-      const playerId = stat.player_id;
-      const currentWins = tournamentWinsMap.get(playerId) || 0;
-      tournamentWinsMap.set(playerId, currentWins + 1);
-    }
-  });
+    // Count victories per player
+    const tournamentWinsMap = new Map<string, number>();
 
-  // Prepare players data with wins
-  const playersWithWins = players?.map(player => ({
-    ...player,
-    wins: tournamentWinsMap.get(player.id) || 0
-  })) || [];
+    victoryStats?.forEach((stat: any) => {
+      if (stat.victory) {
+        const playerId = stat.player_id;
+        const currentWins = tournamentWinsMap.get(playerId) || 0;
+        tournamentWinsMap.set(playerId, currentWins + 1);
+      }
+    });
+
+    // Prepare players data with wins
+    playersWithWins = players?.map(player => ({
+      ...player,
+      wins: tournamentWinsMap.get(player.id) || 0
+    })) || [];
+  } catch (error) {
+    console.error("Ошибка при загрузке данных игроков:", error);
+  }
 
   return (
     <div className="min-h-screen bg-background">

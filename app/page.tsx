@@ -4,27 +4,43 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Trophy, Users, Award, Settings } from 'lucide-react';
 import { createClient } from "@/lib/supabase/server";
 
+export const dynamic = 'force-dynamic';
+
 export default async function HomePage() {
-  const supabase = await createClient();
+  let tournamentsCount = 0;
+  let playersCount = 0;
+  let achievementsCount = 0;
+  let recentTournaments: any[] = [];
 
-  // Fetch stats
-  const { count: tournamentsCount } = await supabase
-    .from("tournaments")
-    .select("*", { count: "exact", head: true });
+  try {
+    const supabase = await createClient();
 
-  const { count: playersCount } = await supabase
-    .from("players")
-    .select("*", { count: "exact", head: true });
+    // Fetch stats
+    const { count } = await supabase
+      .from("tournaments")
+      .select("*", { count: "exact", head: true });
+    tournamentsCount = count || 0;
 
-  const { count: achievementsCount } = await supabase
-    .from("achievements")
-    .select("*", { count: "exact", head: true });
+    const { count: players } = await supabase
+      .from("players")
+      .select("*", { count: "exact", head: true });
+    playersCount = players || 0;
 
-  const { data: recentTournaments } = await supabase
-    .from("tournaments")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(3);
+    const { count: achievements } = await supabase
+      .from("achievements")
+      .select("*", { count: "exact", head: true });
+    achievementsCount = achievements || 0;
+
+    const { data } = await supabase
+      .from("tournaments")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(3);
+    recentTournaments = data || [];
+  } catch (error) {
+    // Если Supabase не настроен, используем значения по умолчанию
+    console.error("Ошибка при загрузке данных:", error);
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -63,7 +79,7 @@ export default async function HomePage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-4xl font-bold text-primary">{tournamentsCount || 0}</div>
+              <div className="text-4xl font-bold text-primary">{tournamentsCount}</div>
               <p className="text-muted-foreground mt-2">Всего турниров</p>
             </CardContent>
           </Card>
@@ -76,7 +92,7 @@ export default async function HomePage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-4xl font-bold text-secondary">{playersCount || 0}</div>
+              <div className="text-4xl font-bold text-secondary">{playersCount}</div>
               <p className="text-muted-foreground mt-2">Зарегистрировано</p>
             </CardContent>
           </Card>
@@ -89,7 +105,7 @@ export default async function HomePage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-4xl font-bold text-accent">{achievementsCount || 0}</div>
+              <div className="text-4xl font-bold text-accent">{achievementsCount}</div>
               <p className="text-muted-foreground mt-2">Доступно наград</p>
             </CardContent>
           </Card>
