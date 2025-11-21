@@ -45,6 +45,7 @@ function AdminManager({ currentUserEmail }: { currentUserEmail?: string }) {
   const [newAdmin, setNewAdmin] = useState({
     email: '',
     full_name: '',
+    password: '',
     role: 'admin' as 'admin' | 'super_admin'
   });
 
@@ -89,6 +90,11 @@ function AdminManager({ currentUserEmail }: { currentUserEmail?: string }) {
   };
 
   const handleAddAdmin = async () => {
+    if (!newAdmin.password || newAdmin.password.length < 6) {
+      alert('Пароль должен содержать минимум 6 символов');
+      return;
+    }
+
     try {
       const response = await fetch('/api/admin-users', {
         method: 'POST',
@@ -99,9 +105,11 @@ function AdminManager({ currentUserEmail }: { currentUserEmail?: string }) {
       if (response.ok) {
         await fetchAdmins();
         setShowAddDialog(false);
-        setNewAdmin({ email: '', full_name: '', role: 'admin' });
+        setNewAdmin({ email: '', full_name: '', password: '', role: 'admin' });
+        alert('Администратор успешно добавлен');
       } else {
-        alert('Ошибка при добавлении администратора');
+        const errorData = await response.json();
+        alert(`Ошибка при добавлении администратора: ${errorData.error || 'Неизвестная ошибка'}`);
       }
     } catch (error) {
       console.error('Error adding admin:', error);
@@ -123,7 +131,7 @@ function AdminManager({ currentUserEmail }: { currentUserEmail?: string }) {
         await fetchAdmins();
         setShowAddDialog(false);
         setEditingAdmin(null);
-        setNewAdmin({ email: '', full_name: '', role: 'admin' });
+        setNewAdmin({ email: '', full_name: '', password: '', role: 'admin' });
       } else {
         alert('Ошибка при обновлении администратора');
       }
@@ -138,6 +146,7 @@ function AdminManager({ currentUserEmail }: { currentUserEmail?: string }) {
     setNewAdmin({
       email: admin.email,
       full_name: admin.full_name,
+      password: '',
       role: admin.role
     });
     setShowAddDialog(true);
@@ -193,7 +202,7 @@ function AdminManager({ currentUserEmail }: { currentUserEmail?: string }) {
               setShowAddDialog(open);
               if (!open) {
                 setEditingAdmin(null);
-                setNewAdmin({ email: '', full_name: '', role: 'admin' });
+                setNewAdmin({ email: '', full_name: '', password: '', role: 'admin' });
               }
             }}>
               <DialogTrigger asChild>
@@ -238,6 +247,23 @@ function AdminManager({ currentUserEmail }: { currentUserEmail?: string }) {
                   className="col-span-3"
                 />
               </div>
+              {!editingAdmin && (
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="password" className="text-right">
+                    Пароль
+                  </Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={newAdmin.password}
+                    onChange={(e) => setNewAdmin({...newAdmin, password: e.target.value})}
+                    className="col-span-3"
+                    placeholder="Минимум 6 символов"
+                    required={!editingAdmin}
+                    minLength={6}
+                  />
+                </div>
+              )}
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="role" className="text-right">
                   Роль

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Calendar, ChevronRight, Trash2 } from 'lucide-react';
 import { deleteTournamentAction } from "@/app/actions/tournament-actions";
+import { CreateTournamentDialog } from "@/components/admin/create-tournament-dialog";
 
 interface Tournament {
   id: string;
@@ -39,6 +40,17 @@ export function TournamentList({ tournaments }: TournamentListProps) {
   if (tournaments.length === 0) {
     return (
       <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Турниры</CardTitle>
+              <CardDescription>
+                Управление турнирами и игровыми днями
+              </CardDescription>
+            </div>
+            <CreateTournamentDialog />
+          </div>
+        </CardHeader>
         <CardContent className="flex flex-col items-center justify-center py-12">
           <p className="text-muted-foreground mb-4">Турниры пока не созданы</p>
           <p className="text-sm text-muted-foreground">
@@ -50,7 +62,17 @@ export function TournamentList({ tournaments }: TournamentListProps) {
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">Турниры</h2>
+          <p className="text-muted-foreground">
+            Управление турнирами и игровыми днями
+          </p>
+        </div>
+        <CreateTournamentDialog />
+      </div>
+      <div className="grid gap-4">
       {tournaments.map((tournament) => (
         <Card key={tournament.id} className="hover:border-primary/50 transition-colors">
           <CardHeader>
@@ -104,6 +126,7 @@ export function TournamentList({ tournaments }: TournamentListProps) {
           </CardContent>
         </Card>
       ))}
+      </div>
     </div>
   );
 }
